@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: smart-farm-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring-stack
+spec:
+  groups:
+  - name: smart-farm.rules
+    rules:
+    - alert: IoTServiceDown
+      expr: absent(up{job="iot-service"})
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "IoT Service is down"
+        description: "The IoT data collector service has been down for more than 1 minute."
+    - alert: AIServiceDown
+      expr: absent(up{job="ai-service"})
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "AI Service is down"
+        description: "The AI inference service has been down for more than 1 minute."

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iot-service-deployment
+  namespace: smart-farm
+  labels:
+    app: iot-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iot-service
+  template:
+    metadata:
+      labels:
+        app: iot-service
+    spec:
+      containers:
+      - name: iot-service
+        image: hassanmaher2001/farmnet-iot-service:latest
+        ports:
+        - containerPort: 5002
+        envFrom:
+        - secretRef:
+            name: rds-credentials
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          initialDelaySeconds: 10
+          periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iot-service
+  namespace: smart-farm
+spec:
+  type: ClusterIP
+  selector:
+    app: iot-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5002
