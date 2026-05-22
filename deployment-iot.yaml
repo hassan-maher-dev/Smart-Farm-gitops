@@ -43,7 +43,7 @@ metadata:
   name: iot-service
   namespace: smart-farm
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: iot-service
   ports:
