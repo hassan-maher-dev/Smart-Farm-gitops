@@ -6,7 +6,8 @@ metadata:
   labels:
     app: iot-service
 spec:
-  replicas: 1
+  replicas: 2
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: iot-service
