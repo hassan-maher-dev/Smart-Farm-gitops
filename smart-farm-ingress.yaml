@@ -9,17 +9,19 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
 spec:
   rules:
-  - http:
+  - host: smartfarm.hassanmaher.tech # قم بكتابة الـ Subdomain الصحيح للمشروع هنا
+    http:
       paths:
-      # ====== توجيه الويب سايت (فلاتر) ======
-      - path: /
+      # ====== 1. توجيه الباك إند (IoT) ======
+      - path: /api
         pathType: Prefix
         backend:
           service:
-            name: frontend-service
+            name: iot-service
             port:
               number: 80
-      # ====== توجيه الباك إند (AI) ======
+
+      # ====== 2. توجيه الباك إند (AI) ======
       - path: /predict
         pathType: Prefix
         backend:
@@ -27,11 +29,12 @@ spec:
             name: ai-service
             port:
               number: 80
-      # ====== توجيه الباك إند (IoT) ======
-      - path: /api
+
+      # ====== 3. توجيه الويب سايت (فلاتر) ======
+      - path: /
         pathType: Prefix
         backend:
           service:
-            name: iot-service
+            name: frontend-service
             port:
               number: 80
