@@ -9,6 +9,16 @@ spec:
     chart: ingress-nginx
     repoURL: https://kubernetes.github.io/ingress-nginx
     targetRevision: 4.10.1
+    helm:
+      values: |
+        controller:
+          service:
+            targetPorts:
+              https: http
+            annotations:
+              service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:465362304114:certificate/52cc6db2-7acc-475d-9314-d78b4e3ef5b4"
+              service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+              service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
   destination:
     server: https://kubernetes.default.svc
     namespace: ingress-nginx
