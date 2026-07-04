@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: frontend-service
-        image: hassanmaher2001/farmnet-frontend:25
+        image: hassanmaher2001/farmnet-frontend:13
         ports:
         - containerPort: 80
         resources:
