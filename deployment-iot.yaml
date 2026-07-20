@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: iot-service
-        image: hassanmaher2001/farmnet-iot-service:17
+        image: hassanmaher2001/farmnet-iot-service:14
         ports:
         - containerPort: 5002
         envFrom:
