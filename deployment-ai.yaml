@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: ai-service
-        image: hassanmaher2001/farmnet-ai-service:15
+        image: hassanmaher2001/farmnet-ai-service:21
         ports:
         - containerPort: 5001
         resources:
