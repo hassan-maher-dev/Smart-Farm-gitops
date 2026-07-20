@@ -1,0 +1,360 @@
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\argocd-ingress.yaml
+==================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-ingress
+  namespace: argocd
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS" # مهمة جداً لأرجو
+spec:
+  rules:
+  - host: argocd.aws-internal.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: argocd-server
+            port:
+              number: 443
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\database-secret.yaml
+==================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rds-credentials
+  namespace: smart-farm
+type: Opaque
+data:
+  # هذا هو الـ Base64 لرابط الداتابيز. 
+  # مثال: echo -n "postgresql://farmnetadmin:SuperSecretPassword123!@<RDS_ENDPOINT>:5432/farmnetdb" | base64
+  DATABASE_URL: cG9zdGdyZXNxbDovL2Zhcm1uZXRhZG1pbjpTdXBlclNlY3JldFBhc3N3b3JkMTIzIUBteS1la3MtcHJvamVjdC1kZXYtZGIuYzJoc2U0bzA0NWt1LnVzLWVhc3QtMS5yZHMuYW1hem9uYXdzLmNvbTo1NDMyL2Zhcm1uZXRkYg==
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\deployment-ai.yaml
+==================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service-deployment
+  namespace: smart-farm
+  labels:
+    app: ai-service
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: ai-service
+  template:
+    metadata:
+      labels:
+        app: ai-service
+    spec:
+      containers:
+      - name: ai-service
+        image: hassanmaher2001/farmnet-ai-service:23
+        ports:
+        - containerPort: 5001
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 60
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-service
+  namespace: smart-farm
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5001
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\deployment-iot.yaml
+==================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iot-service-deployment
+  namespace: smart-farm
+  labels:
+    app: iot-service
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: iot-service
+  template:
+    metadata:
+      labels:
+        app: iot-service
+    spec:
+      containers:
+      - name: iot-service
+        image: hassanmaher2001/farmnet-iot-service:23
+        ports:
+        - containerPort: 5002
+        envFrom:
+        - secretRef:
+            name: rds-credentials
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          initialDelaySeconds: 60
+          periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iot-service
+  namespace: smart-farm
+spec:
+  type: ClusterIP
+  selector:
+    app: iot-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5002
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\frontend-deployment.yaml
+==================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-service-deployment
+  namespace: smart-farm
+  labels:
+    app: frontend-service
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: frontend-service
+  template:
+    metadata:
+      labels:
+        app: frontend-service
+    spec:
+      containers:
+      - name: frontend-service
+        image: hassanmaher2001/farmnet-frontend:23
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: smart-farm
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\grafana-ingress.yaml
+==================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-ingress
+  namespace: monitoring
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: grafana.aws-internal.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: monitoring-stack-grafana
+            port:
+              number: 80
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\namespace.yaml
+==================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: smart-farm
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\nginx-ingress-app.yaml
+==================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-nginx
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: ingress-nginx
+    repoURL: https://kubernetes.github.io/ingress-nginx
+    targetRevision: 4.10.1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ingress-nginx
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\prometheus-alerts.yaml
+==================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: smart-farm-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring-stack
+spec:
+  groups:
+  - name: smart-farm.rules
+    rules:
+    - alert: IoTServiceDown
+      expr: absent(up{job="iot-service"})
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "IoT Service is down"
+        description: "The IoT data collector service has been down for more than 1 minute."
+    - alert: AIServiceDown
+      expr: absent(up{job="ai-service"})
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "AI Service is down"
+        description: "The AI inference service has been down for more than 1 minute."
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\prometheus-app.yaml
+==================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-stack
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # الرابط الرسمي للـ Helm Charts بتاعة Prometheus
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 61.3.2 # يُفضل تثبيت الإصدار لضمان الاستقرار
+    helm:
+      # هنا بنحط كل الـ Values اللي كنا بنكتبها في واجهة أرجو
+      values: |
+        grafana:
+          adminPassword: "admin123" # الباسورد السهل اللي طلبته
+          service:
+            type: ClusterIP # التعديل هنا: خدمة داخلية مجانية
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring # الـ Namespace اللي هينزل فيه
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true # خليه ينشئ الـ Namespace لو مش موجود
+    - ServerSideApply=true # السطر ده عشان يحل مشكلة الـ Too Long اللي ظهرتلك
+
+==================================================
+FILE: C:\Users\Hassan\Desktop\Smart-Farm-gitops\smart-farm-ingress.yaml
+==================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: smart-farm-ingress
+  namespace: smart-farm
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    # السطر ده مهم تسيبه عشان لو بترفع صور للـ AI حجمها كبير
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  rules:
+  - host: smartfarm.hassanmaher.tech # قم بكتابة الـ Subdomain الصحيح للمشروع هنا
+    http:
+      paths:
+      # ====== 1. توجيه الباك إند (IoT) ======
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: iot-service
+            port:
+              number: 80
+
+      # ====== 2. توجيه الباك إند (AI) ======
+      - path: /predict
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-service
+            port:
+              number: 80
+
+      # ====== 3. توجيه الويب سايت (فلاتر) ======
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
